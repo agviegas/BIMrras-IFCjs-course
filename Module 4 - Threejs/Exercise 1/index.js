@@ -1,5 +1,6 @@
 import { Vector2, Raycaster, Scene, PerspectiveCamera, AmbientLight, DirectionalLight, WebGLRenderer, GridHelper, AxesHelper, Mesh, BoxBufferGeometry, BoxGeometry, MeshStandardMaterial } from "three";
-import {OrbitControls} from "three/examples/jsm/controls/OrbitControls"
+import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import * as dat from 'dat.gui';
 import gsap from 'gsap'
 
@@ -32,6 +33,7 @@ scene.add(directionalLight.target);
 
 //Sets up the renderer, fetching the canvas of the HTML
 const threeCanvas = document.getElementById("three-canvas");
+
 const renderer = new WebGLRenderer({ canvas: threeCanvas, alpha: true });
 renderer.setSize(size.width, size.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -69,7 +71,6 @@ window.addEventListener("resize", () => {
 
 // Objects
 
-
 const cubeGeometry = new BoxGeometry(1, 1, 1);
 const cubeMaterial = new MeshStandardMaterial({color: 0xff0000});
 const cube = new Mesh(cubeGeometry, cubeMaterial);
@@ -94,13 +95,11 @@ gui.addColor(colorParam, 'color').onChange(() => {
 // Folders
 gui.addFolder('Material').add(cubeMaterial, 'wireframe').name('Wireframe');
 
-
-// Ray casting
-
 const raycaster = new Raycaster();
 const mouse = new Vector2();
 
-window.onmousemove = ( event ) => {
+
+window.ondblclick = ( event ) => {
 
 	// calculate mouse position in normalized device coordinates
 	// (-1 to +1) for both components
@@ -108,21 +107,49 @@ window.onmousemove = ( event ) => {
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
-    // update the picking ray with the camera and mouse position
-	raycaster.setFromCamera( mouse, camera );
-
-	// calculate objects intersecting the picking ray
+    raycaster.setFromCamera( mouse, camera );
 	const intersects = raycaster.intersectObjects( scene.children );
 
-	for ( let i = 0; i < intersects.length; i ++ ) {
-
-		intersects[ i ].object.material.color.set( 0x0000ff );
-
-	}
-
+    if(intersects.length > 0) {
+        const intersect = intersects[0];
+        intersect.object.material.color.r = 0;
+        intersect.object.material.color.g = 1;
+        intersect.object.material.color.b = 0;
+    }
 }
 
-// Animations
 
-gsap.to(cube.position, {x: 2, duration: 1, delay: 1});
+// Instantiate a loader
+const loader = new GLTFLoader();
 
+// Load a glTF resource
+loader.load(
+	// resource URL
+	'ARQ.gltf',
+	// called when the resource is loaded
+	function ( gltf ) {
+
+		scene.add( gltf.scene );
+
+        console.log(gltf);
+
+		gltf.animations; // Array<THREE.AnimationClip>
+		gltf.scene; // THREE.Group
+		gltf.scenes; // Array<THREE.Group>
+		gltf.cameras; // Array<THREE.Camera>
+		gltf.asset; // Object
+
+	},
+	// called while loading is progressing
+	function ( xhr ) {
+
+		console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+
+	},
+	// called when loading has errors
+	function ( error ) {
+
+		console.log( 'An error happened' );
+
+	}
+);
